@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import { StyleSheet, Text, View, Button } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
+import { Buffer } from 'buffer';
 
 //BleManager.start({ showAlert: false });
 
@@ -17,9 +18,10 @@ export default class Move extends Component {
 
         // we will have the state conecting, connected, disconnecting, disconnected
         this.state = {
-            info: '',
+            info: 'idle',
             scanning: false,
-            appState: '',
+            appState: 'idle',
+            data : '0'
         };
 
     }
@@ -37,7 +39,6 @@ export default class Move extends Component {
     scan() {
         //we will until we find the device we want, so we will use the method this.manager.startDeviceScan(),
         //the name of the device we want to connect is "ESP32-Cadeado"
-        console.log("ENTROU NO SCAN");
 
         //update the states
         this.setState({ scanning: true });
@@ -68,12 +69,11 @@ export default class Move extends Component {
                     return device.discoverAllServicesAndCharacteristics();
                 })
                 .then((device) => {
-                    //as we are just testing, we are going to disconnect
-                    /*console.log("disconnected");
-                    this.setState({ info: "OK : DISCONNECTED" });
-                    this.setState({ appState: "disconnected" });
-                    this.device.cancelConnection();*/
-                    console.log("e agora o que eu façooooo");
+                    //after discovering all the services and characteristics, we will start the monitoring
+                    this.setState({ info: "OK : MONITORING" });
+                    this.setState({ appState: "monitoring" });
+                    this.monitoring();
+                    //we will update the state
                 })
                 .catch((error) => {
                     console.log(error);
@@ -81,6 +81,30 @@ export default class Move extends Component {
 
         });
     }
+
+    //the functions monitoring will be recieving the data from the device
+
+    // the service_uuid from the device is 4fafc201-1fb5-459e-8fcc-c5c9c331914b
+    // the characteristic_uuid from the device is beb5483e-36e1-4688-b7f5-ea07361b26a8
+    monitoring() {
+        //getting this.device service_uuid
+        
+        this.device.monitorCharacteristicForService("4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8", (error, characteristic) => {
+            if (error) {
+                console.log(error);
+                return;
+            }
+           //we have to convert the characteristic.value base64 to string
+            let data = Buffer.from(characteristic.value, 'base64').toString('ascii');
+            this.setState({ data: data });
+            console.log(data)
+
+        });
+
+        //we will subscribe to the notifications
+
+    }
+
 
     //functin to cancel the connection with the device
    cancelConnection() {
@@ -107,26 +131,22 @@ export default class Move extends Component {
                     <Button
                         title="Connect"
                         onPress={() => this.scan()}
-                        disabled={this.state.appState == "connected"}
+                        disabled={this.state.appState == "connected" || this.state.appState == "monitoring"}
                         //change the color of the button to gray if the state is connected
                         color={this.state.appState == "connected" ? "gray" : "blue"}
                     />
                     <Button
                         title="Disconnect"
                         onPress={() => this.cancelConnection()}
-                        disabled={this.state.appState != "connected"}
+                        disabled={this.state.appState != "connected" && this.state.appState != "monitoring"}
                         //changhe the color of the button if the state is connected
-                        color={this.state.appState == "connected" ? "red" : "grey"}
+                        color={this.state.appState == "connected" || "monitoring" ? "red" : "grey"}
                     />
                 </View>
                 <View style={styles.info}>
-                    <Text style={styles.infoText}>{this.state.info}</Text>
+                    <Text style={styles.infoText}>{this.state.data}</Text>
                     <Text style={styles.infoText}>{this.state.appState}</Text>
                     <Text style={styles.infoText}>{this.state.scanning ? 'scanning...' : ''}</Text>
-                </View>
-
-                <View style={styles.devices}>
-                    <Text style={styles.devicesText}>{this.state.peripherals}</Text>
                 </View>
             </View>
         );
@@ -175,13 +195,6 @@ const styles = StyleSheet.create({
     infoText: {
         fontSize: 20,
         fontWeight: 'bold',
-    },
-    devices: {
-        flex: 1,
-        flexDirection: 'row',
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
     },
 });
 
