@@ -1,10 +1,7 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, Button } from 'react-native';
+import { StyleSheet, Text, View, Button, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
-
-//BleManager.start({ showAlert: false });
-
 
 //we want to connect to the device named "ESP32-Cadeado"
 
@@ -16,9 +13,12 @@ export default class Move extends Component {
 
         this.device = null;
 
-        // we will have the state conecting, connected, disconnecting, disconnected
+        this.device_service_uuid = null;
+
+        this.device_characteristic_uuid = null;
+
         this.state = {
-            info: 'idle',
+            error: null,
             scanning: false,
             appState: 'idle',
             data : '0'
@@ -26,101 +26,111 @@ export default class Move extends Component {
 
     }
 
-    //we will use the method this.manager.devices() to get all the devices that are available
     componentDidMount() {
         //this.scan();
     }
 
-    //stopping the connecting if we are umounting the component
     componentWillUnmount() {
-        //this.cancelConnection();
+        if(this.device != null) {
+            this.cancelConnection();
+        }
     }
 
-    scan() {
-        //we will until we find the device we want, so we will use the method this.manager.startDeviceScan(),
-        //the name of the device we want to connect is "ESP32-Cadeado"
-
-        //update the states
-        this.setState({ scanning: true });
-        
+    scan(){
         this.manager.startDeviceScan(null, null, (error, device) => {
-            if (error) {
-                this.setState({ info: error });
-                console.log(error);
 
-                //if the error is that the BLE is powered off, we will ask the user to turn it on
+            this.setState({ scanning: true });
+
+            if (error) {
+                this.setState({ error: error });
+                console.log(error);
                 return;
             }
-            if(device.name == "ESP32-Cadeado") {
-                this.manager.stopDeviceScan();
-                this.device = device;
+
+            if (device.name == "ESP32-Cadeado") {
                 this.setState({ scanning: false });
-                console.log("device found");
+
+                this.device = device; //now we have the device that we want, so we can stop scanning 
+
+                this.manager.stopDeviceScan();
+
+                this.connect();
             }
-            
-            //try to connect to the device
-            device.connect()
-                .then((device) => {
-                    console.log("connected");
-                    this.setState({ info: "OK : CONNECTED" });
-                    this.setState({ appState: "connected" });
-                    
-                    //discover all the services and characteristics
-                    return device.discoverAllServicesAndCharacteristics();
-                })
-                .then((device) => {
-                    //after discovering all the services and characteristics, we will start the monitoring
-                    this.setState({ info: "OK : MONITORING" });
-                    this.setState({ appState: "monitoring" });
-                    this.monitoring();
-                    //we will update the state
-                })
-                .catch((error) => {
+        }
+        );
+    }
+
+    async connect() {
+        if (this.device == null) {
+            this.setState({ error: "Cadeado não encontrado" });
+            Alert.alert("Cadeado não encontrado");
+            return;
+        }
+
+        this.setState({ appState: "connecting" });
+
+        const connection = await this.manager.connectToDevice(this.device.id);
+
+        let verify = await this.manager.isDeviceConnected(this.device.id);
+
+        if (verify) {
+            this.setState({ appState: "connected" });
+
+            console.log("connected");
+
+            const device = await this.manager.discoverAllServicesAndCharacteristicsForDevice(this.device.id); //discover all services and characteristics
+
+            const services = await device.services(); //get all services
+
+
+            const charPromises = services.map(async (service) => {
+                const characteristics = await service.characteristics();
+                return characteristics;
+            }); //get all promises for all characteristics
+
+            const characteristics = await Promise.all(charPromises); //wait for all characteristics to be discovered
+
+            const writableCharacteristics = characteristics //filter for writable characteristics, which is our ESP32 characteristic
+                .map((characteristic) => characteristic.filter((c) => c.isWritableWithResponse))
+                .filter((c) => c.length > 0);
+
+            this.device_service_uuid = writableCharacteristics[0][0].serviceUUID;
+
+            this.device_characteristic_uuid = writableCharacteristics[0][0].uuid;
+
+
+            console.log("service: " + this.device_service_uuid);
+            console.log("characteristic: " + this.device_characteristic_uuid);
+
+            this.device.monitorCharacteristicForService(this.device_service_uuid, this.device_characteristic_uuid, (error, characteristic) => {
+                if (error) {
+                    this.setState({ error: error });
                     console.log(error);
-                });
+                    return;
+                }
 
-        });
+                console.log("monitoring");
+                
+                let data = Buffer.from(characteristic.value, 'base64').toString('ascii');
+                console.log(data);
+                this.setState({ data: data });
+            });
+        }
+        else{
+            this.setState({ appState: "disconnected" });
+            Alert.alert("Erro ao conectar com o cadeado");
+        }
     }
 
-    //the functions monitoring will be recieving the data from the device
-
-    // the service_uuid from the device is 4fafc201-1fb5-459e-8fcc-c5c9c331914b
-    // the characteristic_uuid from the device is beb5483e-36e1-4688-b7f5-ea07361b26a8
-    monitoring() {
-        //getting this.device service_uuid
-        
-        this.device.monitorCharacteristicForService("4fafc201-1fb5-459e-8fcc-c5c9c331914b", "beb5483e-36e1-4688-b7f5-ea07361b26a8", (error, characteristic) => {
-            if (error) {
-                console.log(error);
-                return;
-            }
-           //we have to convert the characteristic.value base64 to string
-            let data = Buffer.from(characteristic.value, 'base64').toString('ascii');
-            this.setState({ data: data });
-            console.log(data)
-
-        });
-
-        //we will subscribe to the notifications
-
-    }
-
-
-    //functin to cancel the connection with the device
    cancelConnection() {
         console.log("disconnecting");
-        this.setState({ info: "OK : DISCONNECTING" });
         this.setState({ appState: "disconnecting" });
         this.device.cancelConnection();
         console.log("disconnected");
-        this.setState({ info: "OK : DISCONNECTED" });
         this.setState({ appState: "disconnected" });
-
+        this.device = null;
     }
-
-    //we will have 3 divs for our style, one is the title, the second will hold the button connect and disconnect,
-    //the buttton conect will only work if the state is disconnected, and the button disconnect will only work if the state is connected
-    //the third div will show the information on this.state 
+ 
     render() {
         return (
             <View style={styles.container}>
@@ -130,7 +140,8 @@ export default class Move extends Component {
                 <View style={styles.buttons}>
                     <Button
                         title="Connect"
-                        onPress={() => this.scan()}
+                        //the functions is a async
+                        onPress={() => this.services = this.scan()}
                         disabled={this.state.appState == "connected" || this.state.appState == "monitoring"}
                         //change the color of the button to gray if the state is connected
                         color={this.state.appState == "connected" ? "gray" : "blue"}
@@ -146,12 +157,11 @@ export default class Move extends Component {
                 <View style={styles.info}>
                     <Text style={styles.infoText}>{this.state.data}</Text>
                     <Text style={styles.infoText}>{this.state.appState}</Text>
-                    <Text style={styles.infoText}>{this.state.scanning ? 'scanning...' : ''}</Text>
+                    <Text style={styles.infoText}>{this.state.scanning ? 'Scanning...' : ''}</Text>
                 </View>
             </View>
         );
     }
-
 
 }
 

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "expo": "~47.0.8",
+    "expo-permissions": "^14.0.0",
     "expo-splash-screen": "~0.17.5",
     "expo-status-bar": "~1.4.2",
     "react": "18.1.0",
