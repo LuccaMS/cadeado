@@ -5,6 +5,18 @@ import { Buffer } from 'buffer';
 
 //we want to connect to the device named "ESP32-Cadeado"
 
+//notifications
+import * as Notifications from 'expo-notifications';
+
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+
+    }),
+});
+
 export default class Move extends Component {
     constructor(props) {
         super(props);
@@ -13,11 +25,16 @@ export default class Move extends Component {
 
         this.device = null;
 
+        this.count = 0;
+
         this.device_service_uuid = null;
 
         this.device_characteristic_uuid = null;
 
+        this._list = [];
+
         this.state = {
+            isMoving : false,
             error: null,
             scanning: false,
             appState: 'idle',
@@ -36,6 +53,18 @@ export default class Move extends Component {
         }
     }
 
+    //notify
+    async sendNotification() {
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "BLE TEST",
+                body: "The device is moving",
+                data: { data: 'The device is moving' },
+            },
+            trigger: { seconds: 3 },
+        });
+    }
+    
     scan(){
         this.manager.startDeviceScan(null, null, (error, device) => {
 
@@ -108,19 +137,47 @@ export default class Move extends Component {
                     console.log(error);
                     return;
                 }
-
-                console.log("monitoring");
                 
                 let data = Buffer.from(characteristic.value, 'base64').toString('ascii');
                 console.log(data);
                 this.setState({ data: data });
+
+                //data ? this.setState({ isMoving: true }) : this.setState({ isMoving: false });
+
+                //the _list is a array that will hold every data received from the device
+                //because of the wat the sensor works, if the device will send a 1, a 0 and a 1 again
+                //so if we find this pattern a certain number of times, we can assume that the device is moving
+                //and send a notification to the user
+                data ? this.setState({ isMoving: true }) : this.setState({ isMoving: false })
+                this._list.push(data ? 1 : 0);
+
+                //we want to find the pattern 1, 0, 1 5 times to send the notification,
+  
+                if(this._list.length > 25) {
+                    for(let i = 0; i < this._list.length; i++) {
+                        if(this._list[i] == 1 && this._list[i + 1] == 0 && this._list[i + 2] == 1) {
+                            this.count++;
+                            if(this.count == 10){
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if(this.count >= 10) {
+                    this.sendNotification();
+                    this.count = 0;
+                    this._list = [];
+                }
+
             });
         }
         else{
             this.setState({ appState: "disconnected" });
-            Alert.alert("Erro ao conectar com o cadeado");
+            console.log("Could not connect");
         }
     }
+    
 
    cancelConnection() {
         console.log("disconnecting");
@@ -162,7 +219,6 @@ export default class Move extends Component {
             </View>
         );
     }
-
 }
 
 // the main container will be a vertical flexbox
