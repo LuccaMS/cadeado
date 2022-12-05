@@ -3,9 +3,6 @@ import { StyleSheet, Text, View, Button, Alert } from 'react-native';
 import { BleManager } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
 
-//we want to connect to the device named "ESP32-Cadeado"
-
-//notifications
 import * as Notifications from 'expo-notifications';
 
 Notifications.setNotificationHandler({
@@ -53,7 +50,6 @@ export default class Move extends Component {
         }
     }
 
-    //notify
     async sendNotification() {
         await Notifications.scheduleNotificationAsync({
             content: {
@@ -72,21 +68,19 @@ export default class Move extends Component {
 
             if (error) {
                 this.setState({ error: error });
-                console.log(error);
+                
+                Alert.alert(error.message);
+
                 return;
             }
 
-            if (device.name == "ESP32-Cadeado") {
+            if(device.name == "ESP32-Cadeado") {
+                this.device = device;
                 this.setState({ scanning: false });
-
-                this.device = device; //now we have the device that we want, so we can stop scanning 
-
                 this.manager.stopDeviceScan();
-
                 this.connect();
             }
-        }
-        );
+        })
     }
 
     async connect() {
@@ -105,7 +99,7 @@ export default class Move extends Component {
         if (verify) {
             this.setState({ appState: "connected" });
 
-            console.log("connected");
+            //console.log("Conectado");
 
             const device = await this.manager.discoverAllServicesAndCharacteristicsForDevice(this.device.id); //discover all services and characteristics
 
@@ -174,16 +168,16 @@ export default class Move extends Component {
         }
         else{
             this.setState({ appState: "disconnected" });
-            console.log("Could not connect");
+            console.log("Não foi possível estabelecer a conexão");
         }
     }
     
 
    cancelConnection() {
-        console.log("disconnecting");
+        //console.log("disconnecting");
         this.setState({ appState: "disconnecting" });
         this.device.cancelConnection();
-        console.log("disconnected");
+        //console.log("disconnected");
         this.setState({ appState: "disconnected" });
         this.device = null;
     }
@@ -198,7 +192,7 @@ export default class Move extends Component {
                     <Button
                         title="Connect"
                         //the functions is a async
-                        onPress={() => this.services = this.scan()}
+                        onPress={() =>  this.scan()}
                         disabled={this.state.appState == "connected" || this.state.appState == "monitoring"}
                         //change the color of the button to gray if the state is connected
                         color={this.state.appState == "connected" ? "gray" : "blue"}
