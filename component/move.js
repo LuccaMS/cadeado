@@ -10,7 +10,6 @@ Notifications.setNotificationHandler({
         shouldShowAlert: true,
         shouldPlaySound: true,
         shouldSetBadge: false,
-
     }),
 });
 
@@ -41,7 +40,10 @@ export default class Move extends Component {
     }
 
     componentDidMount() {
-        //this.scan();
+        this.setState({ appState: "idle" });
+        this.setState({ scanning: false });
+        this.setState({ error: null });
+        this.setState({ data: '0' });
     }
 
     componentWillUnmount() {
@@ -60,17 +62,16 @@ export default class Move extends Component {
             trigger: { seconds: 3 },
         });
     }
-    
-    scan(){
-        this.manager.startDeviceScan(null, null, (error, device) => {
 
+    async scan_async(){
+        await this.manager.startDeviceScan(null, null, (error, device) => {
             this.setState({ scanning: true });
 
             if (error) {
                 this.setState({ error: error });
-                
+                this.setState({ scanning: false });
                 Alert.alert(error.message);
-
+                this.manager.stopDeviceScan();
                 return;
             }
 
@@ -79,9 +80,29 @@ export default class Move extends Component {
                 this.setState({ scanning: false });
                 this.manager.stopDeviceScan();
                 this.connect();
+                return device;
             }
         })
     }
+
+    scan(){
+        this.setState({error : null});
+        this.device = null;
+        this.setState({ scanning: false });
+        this.setState({data: '0'});
+        
+        //We are going to exeute the scan_async function, if the this.device continues null for 5 seconds, we are going to show an alert with the timeout
+        this.scan_async().then(() => {
+            setTimeout(() => {
+                if(this.device == null && this.state.error == null) {
+                    Alert.alert("Timeout", "The device was not found");
+                    this.setState({ scanning: false });
+                    this.manager.stopDeviceScan();
+                }
+            }, 2000);
+        }
+        );
+ }
 
     async connect() {
         if (this.device == null) {
