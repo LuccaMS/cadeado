@@ -10,6 +10,11 @@
     ],
     "android": {
       "package": "com.anonymous.cadeado"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bb4231de-ec5f-469c-bbda-4179b0c387c5"
+      }
     }
   }
 }

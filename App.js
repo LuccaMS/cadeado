@@ -1,5 +1,5 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import { StatusBar } from "expo-status-bar";
+import React from "react";
 
 import Move from './src/main/move';
 
@@ -14,4 +14,3 @@ export default function App() {
     <AppNavigator />
   );
 }
-
