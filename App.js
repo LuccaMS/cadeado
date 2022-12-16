@@ -1,7 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 
-import Move from './component/move';
+import Move from './src/main/move';
+
+import AppNavigator from './src/app.navigator';
 
 //request permission to use bluetooth
 
@@ -9,7 +11,7 @@ import Move from './component/move';
 
 export default function App() {
   return (
-    <Move />
+    <AppNavigator />
   );
 }
 
