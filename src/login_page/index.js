@@ -11,6 +11,8 @@ import {
   Alert
 } from "react-native";
 
+import { Buffer } from "buffer";
+
 
 interface LoginScreenProps {
   navigation: any;
@@ -21,22 +23,35 @@ export default function Login(props: LoginScreenProps) {
   const [password, setPassword] = useState("");
 
   //creating a function to deal with the login
+
+  //as fetch doesn't allow us to send a body in a GET request, we are have to 
+  //send a field in the header of the request named authentication
+
+  //we haveto concatenate the email and password with a colon and then encode it in base64
+  //and then send this value in the field
+
   const login = () => {
+
+      //const email_teste = "teste@gmail.com"
+      //const password_teste = "teste123"
+      //let auth = Buffer.from(email_teste + ":" + password_teste).toString("base64");
+      //console.log(email,password)
+      //console.log(auth)
+
+    let auth = Buffer.from(email + ":" + password).toString("base64");
       fetch("http://matheuskolln.pythonanywhere.com/user", {
         method: "GET",
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          authentication: auth,
         },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
       }).then(response => {
         if (response.status == 200) {
           response.json().then(data => {
             if (data.message == "login successful") {
-              props.navigation.navigate("Menu");
+              //adding the token to the props so that it can be used in the other pages
+              props.navigation.navigate("Menu", { token: data.token });
             } else {
               Alert.alert("Usuário ou senha incorretos");
             }
@@ -60,8 +75,6 @@ export default function Login(props: LoginScreenProps) {
         password: password,
       }),
     }).then(response => {
-        console.log(response.status)
-        console.log(response)
         response.json().then(data => {
           if(data.message == "user has been created before"){
             Alert.alert("Usuário já existe");

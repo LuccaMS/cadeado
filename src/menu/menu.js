@@ -6,6 +6,7 @@ interface MenuScreenProps {
 }
 
 export default function Menu(props: MenuScreenProps) {
+    const {token, others} = props.route.params;
 
     const logout = () => {
         console.log("handleLogout");
@@ -14,17 +15,20 @@ export default function Menu(props: MenuScreenProps) {
 
     const move = () => {
         console.log("handleMove");
-        props.navigation.navigate("Move");
+        props.navigation.navigate("Move", {token: token});
     };
 
     const logs = () => {
         console.log("handleLogs");
-        props.navigation.navigate("Logs");
+        props.navigation.navigate("Logs", {token: token});
     };
     //we are going to use touchable opacity to make the buttons because its easier to style, they will be in a column
     //and have the #9177bc color
     return (
         <View style={styles.container}>
+            <Text>
+                {token}
+            </Text>
             <TouchableOpacity style={styles.button} onPress={move}>
                 <Text style={styles.buttonText}>Ir para o cadeado</Text>
             </TouchableOpacity>
