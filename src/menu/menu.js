@@ -1,5 +1,5 @@
 import react from "react";
-import { View, Text, Button,StyleSheet,TouchableOpacity } from "react-native";
+import { View, Text, Button,StyleSheet,TouchableOpacity, Alert } from "react-native";
 
 interface MenuScreenProps {
     navigation: any;
@@ -19,16 +19,29 @@ export default function Menu(props: MenuScreenProps) {
     };
 
     const logs = () => {
-        console.log("handleLogs");
-        props.navigation.navigate("Logs", {token: token});
+        fetch("http://matheuskolln.pythonanywhere.com/user/logs", {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+                "x-access-tokens": token,
+            },
+        }).then(response => {
+            if (response.status == 200) {
+                //saving the response in a variable
+                response.json().then(data => {
+                    console.log(data)
+                    props.navigation.navigate("Logs", {token: token, logs: data});
+                });
+            }
+            else {
+                Alert.alert("Erro ao obter logs");
+            }
+        });
     };
     //we are going to use touchable opacity to make the buttons because its easier to style, they will be in a column
     //and have the #9177bc color
     return (
         <View style={styles.container}>
-            <Text>
-                {token}
-            </Text>
             <TouchableOpacity style={styles.button} onPress={move}>
                 <Text style={styles.buttonText}>Ir para o cadeado</Text>
             </TouchableOpacity>

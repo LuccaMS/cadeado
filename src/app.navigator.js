@@ -6,6 +6,7 @@ import Login from "./login_page";
 import Move from "./main/move";
 import Logs from "./logs_page/logs";
 import Menu from "./menu/menu";
+import Show from "./logs_page/show";
 
 const {Navigator, Screen} = createStackNavigator();
 
@@ -17,6 +18,7 @@ const AppNavigator = () => {
                    <Screen name="Move" component={Move}></Screen>
                    <Screen name="Logs" component={Logs}></Screen>
                    <Screen name="Menu" component={Menu}></Screen>
+                   <Screen name="Show" component={Show}></Screen>
             </Navigator>
         </NavigationContainer>
     );
