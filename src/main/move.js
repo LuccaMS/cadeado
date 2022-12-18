@@ -1,5 +1,5 @@
 import React, { Component } from "react";
-import { StyleSheet, Text, View, Button, Alert, Image } from "react-native";
+import { StyleSheet, Text, View, Button, Alert, Image, TextInput } from "react-native";
 import { BleManager, Device } from "react-native-ble-plx";
 import { Buffer } from "buffer";
 
@@ -48,6 +48,7 @@ export default class Move extends Component {
       scanning: false,
       appState: "idle",
       data: "0",
+      deviceName : null, //esse nome é só o input para conectarmos, depois só usamos o device.name
     };
   }
 
@@ -61,6 +62,7 @@ export default class Move extends Component {
     this.setState({ error: null });
     this.setState({ data: "0" });
     this.setState({ isMoving: false });
+    this.setState({ deviceName: null });
     this.phone_name = null;
   }
 
@@ -153,7 +155,7 @@ export default class Move extends Component {
         return;
       }
 
-      if (device.name == "ESP32-Cadeado") {
+      if (device.name == this.state.deviceName) {
         this.device = device;
         this.setState({ scanning: false });
         this.manager.stopDeviceScan();
@@ -168,6 +170,12 @@ export default class Move extends Component {
     this.device = null;
     this.setState({ scanning: false });
     this.setState({ data: "0" });
+
+    if(this.state.deviceName == null || this.state.deviceName == "")
+    {
+        Alert.alert("Erro", "Por favor insira o nome do cadeado");
+        return;
+    }
 
     //We are going to exeute the scan_async function, if the this.device continues null for 5 seconds, we are going to show an alert with the timeout
     this.scan_async().then(() => {
@@ -294,11 +302,14 @@ export default class Move extends Component {
     this.device = null;
   }
 
+  //if the state is not connected, we are going to get the input of the device name to
+
   render() {
     return (
       <View style={styles.container}>
         {this.state.appState !== "connected" ? (
           <View style={styles.disconectedLockView}>
+            <View style={styles.textandImage}>
             <Image
               style={styles.lock}
               source={require("./imgs/cadeado-aberto.png")}
@@ -306,6 +317,15 @@ export default class Move extends Component {
             <Text style={styles.disconnectedText}>
               Nenhum cadeado conectado!
             </Text>
+            </View>
+            <View style={styles.textInputView}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Digite o nome do cadeado"
+                placeholderTextColor="white"
+                onChangeText={(text) => this.setState({ deviceName: text })}
+              />
+            </View>
           </View>
         ) : (
           <View style={styles.connectedLockView}>
@@ -411,18 +431,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 4,
   },
+  textInput: {
+    height: 40,
+    borderColor: "black",
+    //centering
+    textAlign: "center",
+
+    borderWidth: 2,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    width: 200,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+  },
   disconectedLockView: {
-    justifyContent: "center",
+    flexDirection: "column",
+    justifyContent: "space-around",
     alignItems: "center",
-    padding: 20,
+    borderColor: "black",
+    backgroundColor: "#9177BC",
+    borderRadius: 20,
+    paddingHorizontal: 50,
+    paddingVertical: 20,
     marginTop: 200,
+
   },
   connectedLockView: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     borderColor: "black",
-    backgroundColor: "grey",
+    backgroundColor: "#9177BC",
     borderRadius: 20,
     paddingHorizontal: 50,
     paddingVertical: 20,
@@ -435,7 +474,13 @@ const styles = StyleSheet.create({
 
   textButtonView: {
     flexDirection: "column",
+    justifyContent: "space-around",
     padding: 20,
+  },
+  textandImage: {
+    flexDirection: "column",
+    alignItems: "center",
+    paddingBottom: 20,
   },
 });
 
