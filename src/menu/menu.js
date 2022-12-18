@@ -8,11 +8,6 @@ interface MenuScreenProps {
 export default function Menu(props: MenuScreenProps) {
     const {token, others} = props.route.params;
 
-    const logout = () => {
-        console.log("handleLogout");
-        props.navigation.navigate("Login");
-    };
-
     const move = () => {
         console.log("handleMove");
         props.navigation.navigate("Move", {token: token});
@@ -47,9 +42,6 @@ export default function Menu(props: MenuScreenProps) {
             </TouchableOpacity>
             <TouchableOpacity style={styles.button} onPress={logs}>
                 <Text style={styles.buttonText}>Log dos dados</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={logout}>
-                <Text style={styles.buttonText}>Deslogar</Text>
             </TouchableOpacity>
         </View>
     );

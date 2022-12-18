@@ -1,6 +1,6 @@
 import react, {useState } from "react";
 
-import { View, Text, Button, StyleSheet, Alert, TextInput } from "react-native";
+import { View, Text, StyleSheet, Alert, TextInput,TouchableOpacity, Image } from "react-native";
 
 interface LogsScreenProps {
     navigation: any;
@@ -27,19 +27,16 @@ export default function Logs(props: LogsScreenProps) {
            logs.push(log);
        }
 
-       //we will now filter the logs to the ones that match the name the user typed
        for (let i = 0; i < logs.length; i++) {
            if (logs[i].esp_name == name) {
                filtered_logs.push(logs[i]);
            }
        }
 
-       //if the array is empty, there are no logs for the name the user typed
-       //so we will alert the user
          if (filtered_logs.length == 0) {
                 Alert.alert("Não há logs para o cadeado digitado");
                 return
-            }
+        }
 
        for(let i = 0; i < filtered_logs.length; i++) {
               console.log(filtered_logs[i]);
@@ -50,14 +47,18 @@ export default function Logs(props: LogsScreenProps) {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Logs</Text>
-            <Text style={styles.text}>Digite o nome do cadeado</Text>
+            <Image source={require("../logs_page/cadeado.png")} style={styles.image} />
+            <View style={styles.input}>
             <TextInput
-                style={styles.input}
+                style={styles.TextInput}
                 onChangeText={name => setName(name)}
                 value={name}
+                placeholder="Digite o nome do cadeado"
             />
-            <Button title="Buscar" onPress={mapLogs} />
+            </View>
+            <TouchableOpacity style = {styles.button} onPress={mapLogs}>
+                <Text style = {styles.buttonText}>Buscar</Text>
+            </TouchableOpacity>
         </View>
     );
 }
@@ -79,11 +80,33 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     input: {
-        height: 40,
-        width: 200,
-        margin: 12,
-        borderWidth: 1,
-        padding: 10,
+        backgroundColor: "#9177bc",
+        borderRadius: 30,
+        width: "70%",
+        height: 45,
+        marginBottom: 20,
+        alignItems: "center",
     },
+    TextInput: {
+        height: 50,
+        flex: 1,
+        padding: 10,
+        marginLeft: 20,
+      },
+    button: {
+        width: "80%",
+        borderRadius: 25,
+        height: 50,
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: 40,
+        backgroundColor: "#9177bc",
+    },
+    image: {
+        marginBottom: 40,
+        width: 200,
+        height: 200,
+    },
+
 });
 
